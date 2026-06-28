@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>八年级体测成绩换算 · 体测帮</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --primary: #2563a8;
+    --primary-dark: #1a3560;
+    --accent: #1a7a48;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1c2733;
+    --text-sub: #6b7888;
+    --line: #e6ebf2;
+    --warn: #e8951a;
+    --danger: #d64545;
+  }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: var(--text);
+    line-height: 1.5;
+    padding-bottom: 40px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white;
+    padding: 20px 20px 26px;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 20px rgba(26,53,96,0.25);
+  }
+  .header h1 { font-size: 19px; font-weight: 700; letter-spacing: 0.5px; }
+  .header .sub { font-size: 12.5px; color: #a8c8f0; margin-top: 4px; }
+
+  /* Score ring */
+  .score-board {
+    display: flex; align-items: center; justify-content: space-around;
+    margin-top: 18px;
+  }
+  .ring {
+    width: 110px; height: 110px; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 3px solid rgba(255,255,255,0.3);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .ring .num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .ring .label { font-size: 11px; color: #c8e0ff; margin-top: 3px; }
+  .score-side { text-align: center; }
+  .score-side .big { font-size: 26px; font-weight: 800; }
+  .score-side .small { font-size: 11px; color: #c8e0ff; margin-top: 2px; }
+  .grade-tag {
+    display: inline-block; padding: 3px 12px; border-radius: 12px;
+    font-size: 12px; font-weight: 700; margin-top: 6px;
+  }
+  .g-excellent { background: #ffd700; color: #7a5a00; }
+  .g-good { background: #5fd38a; color: #0d4d28; }
+  .g-pass { background: #7eb6e8; color: #0d2d4e; }
+  .g-fail { background: #f0a0a0; color: #7a1515; }
+  .g-none { background: rgba(255,255,255,0.2); color: #fff; }
+
+  /* Selector row */
+  .selectors {
+    display: flex; gap: 10px; padding: 16px 16px 6px;
+  }
+  .selectors select {
+    flex: 1; padding: 10px 12px; border: 1.5px solid var(--line);
+    border-radius: 10px; font-size: 14px; background: var(--card);
+    color: var(--text); appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7888' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+
+  /* Items */
+  .items { padding: 8px 16px; }
+  .item {
+    background: var(--card); border-radius: 12px; padding: 14px 16px;
+    margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border: 1px solid var(--line);
+  }
+  .item-head { display: flex; justify-content: space-between; align-items: center; }
+  .item-name { font-size: 15px; font-weight: 600; }
+  .item-name .unit { font-size: 12px; color: var(--text-sub); font-weight: 400; margin-left: 3px; }
+  .item-weight { font-size: 11px; color: var(--text-sub); background: #f0f3f8; padding: 2px 8px; border-radius: 8px; }
+  .item-body { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .item-input {
+    flex: 1; padding: 9px 12px; border: 1.5px solid var(--line);
+    border-radius: 9px; font-size: 16px; color: var(--text);
+    outline: none; transition: border-color 0.15s;
+  }
+  .item-input:focus { border-color: var(--primary); }
+  .item-result { text-align: right; min-width: 88px; }
+  .item-score { font-size: 20px; font-weight: 700; color: var(--primary); }
+  .item-score.empty { color: #c0c8d2; }
+  .item-grade { font-size: 11px; margin-top: 1px; }
+  .gt-excellent { color: #c89200; }
+  .gt-good { color: var(--accent); }
+  .gt-pass { color: var(--primary); }
+  .gt-fail { color: var(--danger); }
+  .item-hint { font-size: 11px; color: var(--text-sub); margin-top: 6px; }
+
+  /* Summary card */
+  .summary {
+    margin: 14px 16px; background: var(--card); border-radius: 14px;
+    padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    border: 1px solid var(--line);
+  }
+  .summary h3 { font-size: 14px; color: var(--text-sub); margin-bottom: 12px; font-weight: 600; }
+
+  /* Radar chart */
+  .radar-wrap {
+    position: relative; width: 100%; max-width: 300px;
+    margin: 0 auto 14px; aspect-ratio: 600/560;
+  }
+  #radarChart { width: 100%; height: 100%; display: block; }
+  .radar-empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; color: #b8c2ce; font-size: 13px; line-height: 1.6;
+  }
+  .radar-empty.hidden { display: none; }
+  .sum-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 14px; }
+  .sum-row.total { border-top: 2px solid var(--line); margin-top: 6px; padding-top: 12px; font-weight: 700; font-size: 16px; }
+  .sum-row .v { font-weight: 700; }
+  .zk-box {
+    margin-top: 14px; background: linear-gradient(135deg, #e8f5ee, #d5f0e0);
+    border: 1px solid #a8e0c0; border-radius: 10px; padding: 14px;
+  }
+  .zk-box .zk-title { font-size: 12px; color: var(--accent); font-weight: 700; }
+  .zk-box .zk-score { font-size: 28px; font-weight: 800; color: var(--accent); margin-top: 4px; }
+  .zk-box .zk-score span { font-size: 14px; font-weight: 600; }
+  .zk-box .zk-note { font-size: 11px; color: #4a7a5e; margin-top: 4px; line-height: 1.4; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 10px; padding: 4px 16px; }
+  .btn {
+    flex: 1; padding: 13px; border: none; border-radius: 11px;
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn:active { opacity: 0.8; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-ghost { background: var(--card); color: var(--primary); border: 1.5px solid var(--primary); }
+
+  .disclaimer {
+    font-size: 11px; color: var(--text-sub); text-align: center;
+    padding: 16px 24px; line-height: 1.6;
+  }
+  .disclaimer b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1>🏃 八年级体测成绩换算</h1>
+    <div class="sub">依据《国家学生体质健康标准（2014年修订）》· 北京八年级</div>
+    <div class="score-board">
+      <div class="score-side">
+        <div class="big" id="standardScore">0</div>
+        <div class="small">标准分(满分100)</div>
+      </div>
+      <div class="ring">
+        <div class="num" id="totalScore">0</div>
+        <div class="label">总分(含加分)</div>
+      </div>
+      <div class="score-side">
+        <div class="grade-tag g-none" id="gradeTag">待录入</div>
+        <div class="small" style="margin-top:8px;">综合等级</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="selectors">
+    <select id="gender">
+      <option value="male">男生</option>
+      <option value="female">女生</option>
+    </select>
+    <select id="grade">
+      <option value="g8">八年级（初二）</option>
+    </select>
+  </div>
+
+  <div class="items" id="items"></div>
+
+  <div class="summary">
+    <h3>📊 成绩汇总</h3>
+    <div class="radar-wrap">
+      <canvas id="radarChart" width="600" height="560"></canvas>
+      <div class="radar-empty" id="radarEmpty">录入成绩后<br>显示能力雷达图</div>
+    </div>
+    <div id="sumRows"></div>
+    <div class="zk-box">
+      <div class="zk-title">🎯 折算为中考过程性考核分</div>
+      <div class="zk-score" id="zkScore">— <span>/ 10分</span></div>
+      <div class="zk-note" id="zkNote">北京规则：八年级体测成绩达"良好及以上"即可得满分10分，按三类六档赋分。请先录入成绩。</div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-ghost" onclick="resetAll()">重置</button>
+    <button class="btn btn-primary" onclick="fillSample()">填入示例</button>
+  </div>
+
+  <div class="disclaimer">
+    数据来源于教育部官方评分表，仅供参考。<br>
+    BMI项需同时输入身高体重；总分含引体向上/耐力跑加分(各上限10分)。<br>
+    <b>本工具为教学辅助demo，正式成绩以学校实测为准。</b>
+  </div>
+
+</div>
+
+<script>
+// ============ 官方评分数据（八年级/初二）============
+const WEIGHTS = { bmi:15, vital:15, run50:20, sitReach:10, longJump:10, pullup:10, endurance:20 };
+
+// BMI 区间（初二）：[低体重上限, 正常下限, 正常上限, 超重上限, 肥胖下限]
+const BMI = {
+  male:   { lowMax:15.6, normLow:15.7, normHigh:22.5, overMax:25.2 },
+  female: { lowMax:15.2, normLow:15.3, normHigh:22.2, overMax:24.8 }
+};
+
+// 高优指标：[分数, 男, 女]，达到即得分
+const VITAL = [[100,3940,2900],[95,3820,2850],[90,3700,2800],[85,3450,2650],[80,3200,2500],[78,3080,2400],[76,2960,2300],[74,2840,2200],[72,2720,2100],[70,2600,2000],[68,2480,1900],[66,2360,1800],[64,2240,1700],[62,2120,1600],[60,2000,1500],[50,1890,1460],[40,1780,1420],[30,1670,1380],[20,1560,1340],[10,1450,1300]];
+const SIT_REACH = [[100,19.6,22.7],[95,17.7,21.0],[90,15.8,19.3],[85,13.7,17.6],[80,11.6,15.9],[78,10.3,14.6],[76,9.0,13.3],[74,7.7,12.0],[72,6.4,10.7],[70,5.1,9.4],[68,3.8,8.1],[66,2.5,6.8],[64,1.2,5.5],[62,-0.1,4.2],[60,-1.4,2.9],[50,-2.6,2.1],[40,-3.8,1.3],[30,-5.0,0.5],[20,-6.2,-0.3],[10,-7.4,-1.1]];
+const LONG_JUMP = [[100,240,200],[95,233,194],[90,226,188],[85,218,181],[80,210,174],[78,206,171],[76,202,168],[74,198,165],[72,194,162],[70,190,159],[68,186,156],[66,182,153],[64,178,150],[62,174,147],[60,170,144],[50,165,139],[40,160,134],[30,155,129],[20,150,124],[10,145,119]];
+const PULLUP = [[100,14,47],[95,13,45],[90,12,43],[85,11,41],[80,10,39],[78,null,37],[76,9,35],[74,null,33],[72,8,31],[70,null,29],[68,7,27],[66,null,25],[64,6,23],[62,null,21],[60,5,19],[50,4,17],[40,3,15],[30,2,13],[20,1,11],[10,null,9]];
+
+// 低优指标（值越小越好）：[分数, 男(秒), 女(秒)]
+const VITAL_LOW = false;
+const RUN50 = [[100,7.5,8.0],[95,7.6,8.1],[90,7.7,8.2],[85,7.8,8.5],[80,7.9,8.8],[78,8.1,9.0],[76,8.3,9.2],[74,8.5,9.4],[72,8.7,9.6],[70,8.9,9.8],[68,9.1,10.0],[66,9.3,10.2],[64,9.5,10.4],[62,9.7,10.6],[60,9.9,10.8],[50,10.1,11.0],[40,10.3,11.2],[30,10.5,11.4],[20,10.7,11.6],[10,10.9,11.8]];
+const ENDURANCE = [[100,230,210],[95,235,217],[90,240,224],[85,247,232],[80,255,240],[78,260,245],[76,265,250],[74,270,255],[72,275,260],[70,280,265],[68,285,270],[66,290,275],[64,295,280],[62,300,285],[60,305,290],[50,325,300],[40,345,310],[30,365,320],[20,385,330],[10,405,340]];
+
+// 加分表（高优，超过100分档的加分）
+const PULLUP_BONUS = { male:[[10,19],[9,18],[8,17],[7,16],[6,15],[5,14],[4,13],[3,12],[2,11],[1,10]], female:[[10,13],[9,12],[8,11],[7,10],[6,9],[5,8],[4,7],[3,6],[2,4],[1,2]] };
+// 注：仰卧起坐女满分47次后加分，引体男满分14次后加分。加分表为"达到X次得Y加分"
+// 实际加分基准：男引体满分100=14次，超过后每档加分；此处用官方加分表逻辑
+const ENDURANCE_BONUS = { male:[[10,35],[9,32],[8,29],[7,26],[6,23],[5,20],[4,16],[3,12],[2,8],[1,4]], female:[[10,50],[9,45],[8,40],[7,35],[6,30],[5,25],[4,20],[3,15],[2,10],[1,5]] };
+// 耐力跑：满分基础上每减少N秒加对应分
+
+const ITEMS = [
+  { key:'bmi', name:'身高体重(BMI)', unit:'', placeholder:'先填身高体重', special:'bmi' },
+  { key:'vital', name:'肺活量', unit:'毫升', placeholder:'如 3000', table:VITAL, type:'high' },
+  { key:'run50', name:'50米跑', unit:'秒', placeholder:'如 8.5', table:RUN50, type:'low' },
+  { key:'sitReach', name:'坐位体前屈', unit:'厘米', placeholder:'如 12.5', table:SIT_REACH, type:'high' },
+  { key:'longJump', name:'立定跳远', unit:'厘米', placeholder:'如 195', table:LONG_JUMP, type:'high' },
+  { key:'pullup', name:'引体向上/仰卧起坐', unit:'次', placeholder:'如 10', table:PULLUP, type:'high', bonus:true },
+  { key:'endurance', name:'1000米/800米跑', unit:'', placeholder:'如 4.30 表示4分30秒', table:ENDURANCE, type:'low', isTime:true, bonus:true }
+];
+
+let values = {};
+let bmiData = { height:'', weight:'' };
+
+// ============ 评分函数 ============
+function scoreHigh(table, val, gIdx) {
+  // 高优：值≥档位得分
+  for (let row of table) {
+    if (val >= row[gIdx]) return row[0];
+  }
+  return 0;
+}
+function scoreLow(table, val, gIdx) {
+  // 低优：值≤档位得分
+  for (let row of table) {
+    if (row[gIdx] === null) continue;
+    if (val <= row[gIdx]) return row[0];
+  }
+  return 0;
+}
+function scorePullup(val, gIdx) {
+  for (let row of PULLUP) {
+    if (row[gIdx] === null) continue;
+    if (val >= row[gIdx]) return row[0];
+  }
+  return 0;
+}
+function scoreBMI(gender, h, w) {
+  if (!h || !w) return { score:0, grade:'', label:'—' };
+  const hm = h/100;
+  const bmi = w/(hm*hm);
+  const d = BMI[gender];
+  let score, label;
+  if (bmi < d.normLow) { score=80; label='低体重'; }
+  else if (bmi <= d.normHigh) { score=100; label='正常'; }
+  else if (bmi <= d.overMax) { score=80; label='超重'; }
+  else { score=60; label='肥胖'; }
+  return { score, label, bmi: bmi.toFixed(1) };
+}
+function parseTime(str) {
+  // "4.30" => 4分30秒 => 270秒
+  if (str.indexOf('.') > -1) {
+    const p = str.split('.');
+    const min = parseInt(p[0]) || 0;
+    let sec = parseInt(p[1].padEnd(2,'0').slice(0,2)) || 0;
+    return min*60 + sec;
+  }
+  return parseFloat(str)*60; // 纯分钟
+}
+
+function gradeOf(score) {
+  if (score >= 90) return { g:'excellent', t:'优秀' };
+  if (score >= 80) return { g:'good', t:'良好' };
+  if (score >= 60) return { g:'pass', t:'及格' };
+  return { g:'fail', t:'不及格' };
+}
+
+// ============ 渲染 ============
+function render() {
+  const box = document.getElementById('items');
+  box.innerHTML = '';
+  ITEMS.forEach(it => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    let inputHtml;
+    if (it.special === 'bmi') {
+      inputHtml = `
+        <div class="item-body">
+          <input class="item-input" id="bmi_h" inputmode="decimal" placeholder="身高(cm)" value="${bmiData.height}">
+          <input class="item-input" id="bmi_w" inputmode="decimal" placeholder="体重(kg)" value="${bmiData.weight}">
+          <div class="item-result"><div class="item-score empty" id="score_${it.key}">—</div><div class="item-grade" id="grade_${it.key}"></div></div>
+        </div>`;
+    } else {
+      inputHtml = `
+        <div class="item-body">
+          <input class="item-input" id="in_${it.key}" inputmode="decimal" placeholder="${it.placeholder}" value="${values[it.key]||''}">
+          <div class="item-result"><div class="item-score empty" id="score_${it.key}">—</div><div class="item-grade" id="grade_${it.key}"></div></div>
+        </div>`;
+    }
+    div.innerHTML = `
+      <div class="item-head">
+        <div class="item-name">${it.name}<span class="unit">${it.unit?'('+it.unit+')':''}</span></div>
+        <div class="item-weight">权重 ${WEIGHTS[it.key]}%</div>
+      </div>
+      ${inputHtml}
+      ${it.bonus?'<div class="item-hint">💡 该项满分后可加分(上限10分)</div>':''}
+      ${it.isTime?'<div class="item-hint">⏱ 输入格式：4.30 表示 4分30秒</div>':''}
+    `;
+    box.appendChild(div);
+  });
+
+  // 绑定事件
+  ITEMS.forEach(it => {
+    if (it.special === 'bmi') {
+      document.getElementById('bmi_h').addEventListener('input', e => { bmiData.height=e.target.value; compute(); });
+      document.getElementById('bmi_w').addEventListener('input', e => { bmiData.weight=e.target.value; compute(); });
+    } else {
+      document.getElementById('in_'+it.key).addEventListener('input', e => { values[it.key]=e.target.value; compute(); });
+    }
+  });
+  compute();
+}
+
+function compute() {
+  const gender = document.getElementById('gender').value;
+  const gIdx = gender==='male' ? 1 : 2;
+  let standardScore = 0;
+  let bonusTotal = 0;
+  const results = {};
+
+  ITEMS.forEach(it => {
+    let raw, score = 0, extra = '';
+    if (it.special === 'bmi') {
+      const r = scoreBMI(gender, parseFloat(bmiData.height), parseFloat(bmiData.weight));
+      score = r.score;
+      results[it.key] = { score, has: !!(bmiData.height&&bmiData.weight), label:r.label, bmi:r.bmi };
+    } else {
+      const v = values[it.key];
+      if (v === undefined || v === '') { results[it.key] = { score:0, has:false }; return; }
+      if (it.isTime) raw = parseTime(v);
+      else raw = parseFloat(v);
+      if (isNaN(raw)) { results[it.key] = { score:0, has:false }; return; }
+
+      if (it.key === 'pullup') score = scorePullup(raw, gIdx);
+      else if (it.type === 'high') score = scoreHigh(it.table, raw, gIdx);
+      else score = scoreLow(it.table, raw, gIdx);
+
+      // 加分计算
+      if (it.bonus && score >= 100) {
+        if (it.key === 'pullup') {
+          const bt = PULLUP_BONUS[gender];
+          for (let row of bt) { if (raw >= row[1]) { extra = row[0]; break; } }
+        } else if (it.key === 'endurance') {
+          const base = it.table[0][gIdx]; // 满分秒数
+          const reduce = base - raw;
+          const bt = ENDURANCE_BONUS[gender];
+          for (let row of bt) { if (reduce >= row[1]) { extra = row[0]; break; } }
+        }
+        if (extra) bonusTotal += extra;
+      }
+      results[it.key] = { score, has:true, extra };
+    }
+    standardScore += score * WEIGHTS[it.key] / 100;
+  });
+
+  // 更新单项显示
+  ITEMS.forEach(it => {
+    const r = results[it.key];
+    const se = document.getElementById('score_'+it.key);
+    const ge = document.getElementById('grade_'+it.key);
+    if (!se) return;
+    if (!r.has) { se.textContent='—'; se.className='item-score empty'; ge.textContent=''; return; }
+    se.textContent = r.score + (r.extra?('+'+r.extra):'');
+    se.className = 'item-score';
+    if (it.special === 'bmi') {
+      ge.textContent = r.label + (r.bmi?(' '+r.bmi):'');
+      ge.className = 'item-grade ' + (r.score>=90?'gt-excellent':r.score>=80?'gt-good':r.score>=60?'gt-pass':'gt-fail');
+    } else {
+      const g = gradeOf(r.score);
+      ge.textContent = g.t + (r.extra?(' 加'+r.extra+'分'):'');
+      ge.className = 'item-grade gt-'+g.g;
+    }
+  });
+
+  standardScore = Math.round(standardScore*10)/10;
+  const totalScore = Math.min(120, Math.round((standardScore+bonusTotal)*10)/10);
+
+  document.getElementById('standardScore').textContent = standardScore || 0;
+  document.getElementById('totalScore').textContent = totalScore || 0;
+
+  // 综合等级（按总分）
+  const tag = document.getElementById('gradeTag');
+  const anyInput = Object.values(results).some(r=>r.has);
+  if (!anyInput) {
+    tag.textContent='待录入'; tag.className='grade-tag g-none';
+  } else {
+    const g = gradeOf(totalScore);
+    tag.textContent = g.t;
+    tag.className = 'grade-tag g-'+g.g;
+  }
+
+  renderSummary(results, standardScore, bonusTotal, totalScore, anyInput);
+}
+
+function renderSummary(results, std, bonus, total, anyInput) {
+  const box = document.getElementById('sumRows');
+  let html = '';
+  ITEMS.forEach(it => {
+    const r = results[it.key];
+    const val = r.has ? (r.score + (r.extra?('+'+r.extra):'')) + '分' : '—';
+    html += `<div class="sum-row"><span>${it.name}</span><span class="v">${val}</span></div>`;
+  });
+  html += `<div class="sum-row"><span>标准分</span><span class="v">${std} 分</span></div>`;
+  if (bonus>0) html += `<div class="sum-row"><span>附加分</span><span class="v" style="color:var(--accent)">+${bonus} 分</span></div>`;
+  html += `<div class="sum-row total"><span>学年总分</span><span class="v">${total} 分</span></div>`;
+  box.innerHTML = html;
+
+  // 绘制雷达图
+  drawRadar(results, anyInput);
+
+  // 中考折算
+  const zkScore = document.getElementById('zkScore');
+  const zkNote = document.getElementById('zkNote');
+  if (!anyInput) {
+    zkScore.innerHTML = '— <span>/ 10分</span>';
+    zkNote.textContent = '北京规则：八年级体测达"良好及以上"即可得满分10分，按三类六档赋分。请先录入成绩。';
+    return;
+  }
+  // 三类六档：良好及以上(≥80)=10分；及格(60-79.9)按档；不及格(<60)
+  let zk, note;
+  if (total >= 80) { zk=10; note='达到良好及以上，体测部分获满分10分 🎉'; }
+  else if (total >= 70) { zk=9; note='及格(良好档下)，约9分。距满分需总分达80(良好)。'; }
+  else if (total >= 60) { zk=8; note='及格档，约8分。提升至80分即可拿满分10分。'; }
+  else if (total >= 50) { zk=6; note='接近及格，约6分。需加强训练达到60分及格线。'; }
+  else { zk=5; note='暂未及格，约5分及以下。建议系统训练提升。'; }
+  zkScore.innerHTML = zk + ' <span>/ 10分</span>';
+  zkNote.textContent = note + '（注：具体档位赋分以各区实施细则为准）';
+}
+
+function drawRadar(results, anyInput) {
+  const canvas = document.getElementById('radarChart');
+  const empty = document.getElementById('radarEmpty');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!anyInput) { empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  // 七个维度（用短标签）
+  const axes = [
+    { key:'bmi', label:'体重' },
+    { key:'vital', label:'肺活量' },
+    { key:'run50', label:'速度' },
+    { key:'sitReach', label:'柔韧' },
+    { key:'longJump', label:'弹跳' },
+    { key:'pullup', label:'力量' },
+    { key:'endurance', label:'耐力' }
+  ];
+  const n = axes.length;
+  const cx = W/2, cy = H/2 + 6;
+  const R = Math.min(W, H)/2 - 70;
+  const startAngle = -Math.PI/2; // 顶部开始
+
+  // 背景网格（5圈）
+  const rings = 5;
+  for (let r = 1; r <= rings; r++) {
+    const rr = R * r / rings;
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const ang = startAngle + i * 2*Math.PI/n;
+      const x = cx + rr*Math.cos(ang);
+      const y = cy + rr*Math.sin(ang);
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = r===rings ? '#c5cfe0' : '#e6ebf2';
+    ctx.lineWidth = r===rings ? 2 : 1;
+    ctx.stroke();
+  }
+
+  // 轴线 + 标签 + 分数刻度
+  ctx.fillStyle = '#9aa5b3';
+  ctx.font = '20px -apple-system, "PingFang SC", sans-serif';
+  for (let i = 0; i < n; i++) {
+    const ang = startAngle + i * 2*Math.PI/n;
+    const x = cx + R*Math.cos(ang);
+    const y = cy + R*Math.sin(ang);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#e6ebf2';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 标签
+    const lx = cx + (R+34)*Math.cos(ang);
+    const ly = cy + (R+34)*Math.sin(ang);
+    ctx.textAlign = Math.abs(Math.cos(ang)) < 0.3 ? 'center' : (Math.cos(ang) > 0 ? 'left' : 'right');
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#5a6677';
+    ctx.font = 'bold 22px -apple-system, "PingFang SC", sans-serif';
+    ctx.fillText(axes[i].label, lx, ly);
+  }
+  // 100刻度标注（顶部轴）
+  ctx.fillStyle = '#b8c2ce';
+  ctx.font = '16px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('100', cx+4, cy - R + 4);
+  ctx.fillText('60', cx+4, cy - R*0.6 + 4);
+
+  // 数据多边形（得分/100）
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const r = results[axes[i].key];
+    const score = (r && r.has) ? Math.min(100, r.score) : 0;
+    const ratio = score/100;
+    const ang = startAngle + i * 2*Math.PI/n;
+    pts.push({
+      x: cx + R*ratio*Math.cos(ang),
+      y: cy + R*ratio*Math.sin(ang),
+      score, ang, ratio
+    });
+  }
+
+  // 填充
+  ctx.beginPath();
+  pts.forEach((p,i) => { if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); });
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, 'rgba(37,99,168,0.35)');
+  grad.addColorStop(1, 'rgba(26,122,72,0.25)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#2563a8';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // 顶点圆 + 分数
+  pts.forEach(p => {
+    if (p.score === 0) return;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, 2*Math.PI);
+    ctx.fillStyle = '#2563a8';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // 分数文字
+    ctx.fillStyle = '#1a3560';
+    ctx.font = 'bold 18px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const tx = cx + (R*p.ratio + 18)*Math.cos(p.ang);
+    const ty = cy + (R*p.ratio + 18)*Math.sin(p.ang);
+    ctx.fillText(p.score, tx, ty);
+  });
+}
+
+function resetAll() {
+  values = {}; bmiData = { height:'', weight:'' };
+  render();
+}
+function fillSample() {
+  const gender = document.getElementById('gender').value;
+  if (gender === 'male') {
+    bmiData = { height:'170', weight:'58' };
+    values = { vital:'3200', run50:'8.2', sitReach:'12', longJump:'210', pullup:'10', endurance:'4.15' };
+  } else {
+    bmiData = { height:'162', weight:'50' };
+    values = { vital:'2500', run50:'8.8', sitReach:'16', longJump:'174', pullup:'39', endurance:'4.00' };
+  }
+  render();
+}
+
+document.getElementById('gender').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
