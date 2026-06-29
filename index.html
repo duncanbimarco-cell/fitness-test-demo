@@ -69,7 +69,7 @@
     display: flex; gap: 10px; padding: 16px 16px 6px;
   }
   .selectors select {
-    flex: 1; padding: 10px 12px; border: 1.5px solid var(--line);
+    flex: 1; min-width: 0; padding: 10px 12px; border: 1.5px solid var(--line);
     border-radius: 10px; font-size: 14px; background: var(--card);
     color: var(--text); appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7888' stroke-width='2' fill='none'/%3E%3C/svg%3E");
@@ -89,12 +89,18 @@
   .item-weight { font-size: 11px; color: var(--text-sub); background: #f0f3f8; padding: 2px 8px; border-radius: 8px; }
   .item-body { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
   .item-input {
-    flex: 1; padding: 9px 12px; border: 1.5px solid var(--line);
+    flex: 1; min-width: 0; width: 100%; padding: 9px 12px; border: 1.5px solid var(--line);
     border-radius: 9px; font-size: 16px; color: var(--text);
     outline: none; transition: border-color 0.15s;
   }
   .item-input:focus { border-color: var(--primary); }
-  .item-result { text-align: right; min-width: 88px; }
+  .item-result { text-align: right; min-width: 70px; flex-shrink: 0; }
+  .bmi-row { display: flex; gap: 10px; margin-top: 10px; }
+  .bmi-result-row {
+    display: flex; align-items: baseline; gap: 8px; margin-top: 10px;
+    padding-top: 10px; border-top: 1px dashed var(--line);
+  }
+  .bmi-result-row .item-grade { font-size: 12px; color: var(--text-sub); }
   .item-score { font-size: 20px; font-weight: 700; color: var(--primary); }
   .item-score.empty { color: #c0c8d2; }
   .item-grade { font-size: 11px; margin-top: 1px; }
@@ -134,6 +140,27 @@
   .zk-box .zk-score { font-size: 28px; font-weight: 800; color: var(--accent); margin-top: 4px; }
   .zk-box .zk-score span { font-size: 14px; font-weight: 600; }
   .zk-box .zk-note { font-size: 11px; color: #4a7a5e; margin-top: 4px; line-height: 1.4; }
+
+  /* Tips card */
+  .tip-goal {
+    background: linear-gradient(135deg, #fff4e0, #ffe8c2); border: 1px solid #f0c878;
+    border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: #7a5400;
+    line-height: 1.6; margin-bottom: 4px;
+  }
+  .tip-goal b { color: #5a3d00; }
+  .tip-row { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .tip-row:last-child { border-bottom: none; }
+  .tip-rank {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--primary); color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .tip-rank.ok { background: #bcdfc8; color: var(--accent); }
+  .tip-content { flex: 1; min-width: 0; }
+  .tip-title { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; font-weight: 700; }
+  .tip-title .loss { font-size: 12px; color: var(--danger); font-weight: 600; flex-shrink: 0; }
+  .tip-title .loss.ok { color: var(--accent); }
+  .tip-text { font-size: 12.5px; color: var(--text-sub); margin-top: 4px; line-height: 1.6; }
 
   /* Buttons */
   .btn-row { display: flex; gap: 10px; padding: 4px 16px; }
@@ -198,6 +225,12 @@
       <div class="zk-score" id="zkScore">— <span>/ 10分</span></div>
       <div class="zk-note" id="zkNote">北京规则：八年级体测成绩达"良好及以上"即可得满分10分，按三类六档赋分。请先录入成绩。</div>
     </div>
+  </div>
+
+  <div class="summary" id="tipsCard" style="display:none;">
+    <h3>🎯 提分诊断 · 目标中考体育满分10分</h3>
+    <div class="tip-goal" id="tipGoal"></div>
+    <div id="tipList"></div>
   </div>
 
   <div class="btn-row">
@@ -317,10 +350,13 @@ function render() {
     let inputHtml;
     if (it.special === 'bmi') {
       inputHtml = `
-        <div class="item-body">
+        <div class="bmi-row">
           <input class="item-input" id="bmi_h" inputmode="decimal" placeholder="身高(cm)" value="${bmiData.height}">
           <input class="item-input" id="bmi_w" inputmode="decimal" placeholder="体重(kg)" value="${bmiData.weight}">
-          <div class="item-result"><div class="item-score empty" id="score_${it.key}">—</div><div class="item-grade" id="grade_${it.key}"></div></div>
+        </div>
+        <div class="bmi-result-row">
+          <div class="item-score empty" id="score_${it.key}">—</div>
+          <div class="item-grade" id="grade_${it.key}"></div>
         </div>`;
     } else {
       inputHtml = `
@@ -390,7 +426,7 @@ function compute() {
         }
         if (extra) bonusTotal += extra;
       }
-      results[it.key] = { score, has:true, extra };
+      results[it.key] = { score, has:true, extra, raw };
     }
     standardScore += score * WEIGHTS[it.key] / 100;
   });
@@ -450,6 +486,9 @@ function renderSummary(results, std, bonus, total, anyInput) {
   // 绘制雷达图
   drawRadar(results, anyInput);
 
+  // 提分诊断
+  renderTips(results, std, total, anyInput);
+
   // 中考折算
   const zkScore = document.getElementById('zkScore');
   const zkNote = document.getElementById('zkNote');
@@ -467,6 +506,103 @@ function renderSummary(results, std, bonus, total, anyInput) {
   else { zk=5; note='暂未及格，约5分及以下。建议系统训练提升。'; }
   zkScore.innerHTML = zk + ' <span>/ 10分</span>';
   zkNote.textContent = note + '（注：具体档位赋分以各区实施细则为准）';
+}
+
+// ============ 提分诊断 ============
+function nextTierTip(table, type, raw, gIdx) {
+  const rows = table.filter(r => r[gIdx] !== null);
+  let idx = rows.length;
+  for (let i = 0; i < rows.length; i++) {
+    if (type === 'high' ? raw >= rows[i][gIdx] : raw <= rows[i][gIdx]) { idx = i; break; }
+  }
+  if (idx === 0) return null; // 已是最高档
+  const next = idx >= rows.length ? rows[rows.length - 1] : rows[idx - 1];
+  let gap = type === 'high' ? (next[gIdx] - raw) : (raw - next[gIdx]);
+  gap = Math.round(gap * 100) / 100;
+  return { nextScore: next[0], gap };
+}
+
+function tipText(key, gender, gap, nextScore) {
+  const isMale = gender === 'male';
+  switch (key) {
+    case 'vital': return `肺活量再提高约${gap}毫升可达${nextScore}分。建议加强长跑、跳绳等有氧耐力训练。`;
+    case 'run50': return `50米成绩再缩短约${gap}秒可达${nextScore}分。建议加强起跑反应与短距离冲刺训练。`;
+    case 'sitReach': return `坐位体前屈再增加约${gap}厘米可达${nextScore}分。建议每天进行腰背、腿部柔韧拉伸。`;
+    case 'longJump': return `立定跳远再增加约${gap}厘米可达${nextScore}分。建议加强下肢爆发力(蹲跳、跨步跳)训练。`;
+    case 'pullup': return (isMale ? `引体向上再增加约${gap}次` : `仰卧起坐再增加约${gap}次`) + `可达${nextScore}分。建议加强${isMale ? '上肢与背部' : '核心'}力量训练。`;
+    case 'endurance': return (isMale ? `1000米跑再提速约${gap}秒` : `800米跑再提速约${gap}秒`) + `可达${nextScore}分。建议增加间歇跑、变速跑等耐力训练。`;
+    default: return '建议结合专项训练逐步提升该项成绩。';
+  }
+}
+
+function bmiTip(gender, label, h, w) {
+  if (!h || !w) return '请填写身高体重以获取BMI分析。';
+  const hm = h / 100, d = BMI[gender];
+  if (label === '正常') return '体重已在正常范围，保持均衡饮食与规律运动即可维持满分。';
+  if (label === '低体重') {
+    const target = Math.ceil(d.normLow * hm * hm * 10) / 10;
+    const gap = Math.round((target - w) * 10) / 10;
+    return `体重偏轻，建议增加营养摄入并配合力量训练，增重约${gap}kg达到${target}kg以上即可进入正常范围(满分100)。`;
+  }
+  if (label === '超重') {
+    const target = Math.floor(d.normHigh * hm * hm * 10) / 10;
+    const gap = Math.round((w - target) * 10) / 10;
+    return `体重超标，建议增加有氧运动并控制饮食，减重约${gap}kg降至${target}kg以内即可进入正常范围(满分100)。`;
+  }
+  const target = Math.floor(d.overMax * hm * hm * 10) / 10;
+  const gap = Math.round((w - target) * 10) / 10;
+  return `BMI偏高，建议先减重约${gap}kg降至${target}kg以内进入"超重"档(80分)，长期目标是减重至正常范围获得满分。`;
+}
+
+function renderTips(results, standardScore, total, anyInput) {
+  const card = document.getElementById('tipsCard');
+  if (!anyInput) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const gender = document.getElementById('gender').value;
+  const gIdx = gender === 'male' ? 1 : 2;
+
+  const goal = document.getElementById('tipGoal');
+  if (total >= 80) {
+    goal.innerHTML = `🎉 总分已达 <b>${total}分</b>(良好及以上)，体测过程性考核已稳拿<b>满分10分</b>，继续保持当前状态即可。`;
+  } else {
+    const need = Math.round((80 - total) * 10) / 10;
+    goal.innerHTML = `目标：总分再提升 <b>${need}分</b> 达到80分(良好)，即可稳拿中考体育过程性考核<b>满分10分</b>，不被扣分。`;
+  }
+
+  const rows = [];
+  ITEMS.forEach(it => {
+    const r = results[it.key];
+    if (!r || !r.has) return;
+    const weight = WEIGHTS[it.key];
+    const score = Math.min(r.score, 100);
+    const lost = Math.round((100 - score) * weight / 100 * 10) / 10;
+    const maxed = score >= 100;
+    let tip;
+    if (it.special === 'bmi') {
+      tip = maxed ? '体重已在正常范围，保持均衡饮食与规律运动即可维持满分。' : bmiTip(gender, r.label, parseFloat(bmiData.height), parseFloat(bmiData.weight));
+    } else if (maxed) {
+      tip = '已达满分，保持当前训练强度即可巩固成绩' + (r.extra ? `(当前已获加分${r.extra}分)` : '') + '。';
+    } else {
+      const table = it.key === 'pullup' ? PULLUP : it.table;
+      const nt = nextTierTip(table, it.type, r.raw, gIdx);
+      tip = nt ? tipText(it.key, gender, nt.gap, nt.nextScore) : '建议结合专项训练逐步提升该项成绩。';
+    }
+    let name = it.name;
+    if (it.key === 'pullup') name = gender === 'male' ? '引体向上' : '仰卧起坐';
+    if (it.key === 'endurance') name = gender === 'male' ? '1000米跑' : '800米跑';
+    rows.push({ name, lost, tip, maxed });
+  });
+
+  rows.sort((a, b) => b.lost - a.lost);
+  document.getElementById('tipList').innerHTML = rows.map((r, i) => `
+    <div class="tip-row">
+      <div class="tip-rank ${r.maxed ? 'ok' : ''}">${r.maxed ? '✓' : (i + 1)}</div>
+      <div class="tip-content">
+        <div class="tip-title"><span>${r.name}</span><span class="loss ${r.maxed ? 'ok' : ''}">${r.maxed ? '已满分' : '扣' + r.lost + '分'}</span></div>
+        <div class="tip-text">${r.tip}</div>
+      </div>
+    </div>`).join('');
 }
 
 function drawRadar(results, anyInput) {
